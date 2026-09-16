@@ -1,0 +1,331 @@
+"""
+Video Surveillance API Routes — Milestone 3 Phase 3.1
+======================================================
+REST endpoints for real-time video surveillance:
+- Stream lifecycle (start, stop, list, detail)
+- Frame ingestion & processing
+- Live event retrieval & site live status
+- Camera zone configuration
+- Deterministic demo scenario execution
+
+Role-Based Access Control (RBAC):
+- Super Admin & Safety Officer: full management, frame processing, scenario runs
+- Site Manager: stream management & frame processing
+- Project Manager: stream & event viewing, demo scenario runs
+- Viewer: strictly read-only (all mutations return 403)
+"""
+
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from sqlalchemy.orm import Session
+
+from app.database.session import get_db
+from app.api.dependencies import get_current_user, require_roles
+from app.models.models import (
+    User, UserRole, VideoStream, VideoEvent, CameraZone,
+    StreamStatus, VideoSourceType
+)
+from app.schemas.schemas import (
+    VideoStreamStartRequest,
+    VideoStreamOut,
+    VideoEventOut,
+    VideoProcessFrameRequest,
+    VideoProcessFrameOut,
+    VideoLiveStatusOut,
+    CameraZoneCreate,
+    CameraZoneOut,
+    VideoDemoScenarioOut,
+    VideoDemoScenarioRequest,
+)
+from app.services.video.video_service import video_service
+from app.services.video.demo_scenarios import VIDEO_DEMO_SCENARIOS
+
+
+router = APIRouter(prefix="/safety/video", tags=["safety-video"])
+
+MUTATION_ROLES = (
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.SITE_MANAGER,
+)
+
+
+# ── Streams Endpoints ────────────────────────────────────────────────────────
+
+@router.post("/streams/start", response_model=VideoStreamOut, status_code=status.HTTP_201_CREATED)
+def start_stream(
+    payload: VideoStreamStartRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*MUTATION_ROLES)),
+):
+    """
+    Start a new live/demo/RTSP video surveillance stream for a site.
+    RBAC: Safety Officer, Site Manager, Super Admin.
+    """
+    try:
+        stream = video_service.start_stream(
+            db=db,
+            site_id=payload.site_id,
+            camera_name=payload.camera_name or "Site Camera",
+            source_type=payload.source_type or VideoSourceType.DEMO,
+            source_url=payload.source_url,
+            fps=payload.fps or 15.0,
+            sampling_interval_frames=payload.sampling_interval_frames or 5,
+            confidence_threshold=payload.confidence_threshold or 0.65,
+            user_id=current_user.id,
+        )
+        return stream
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start stream: {str(e)}"
+        )
+
+
+@router.post("/streams/stop/{stream_id}", response_model=VideoStreamOut)
+def stop_stream(
+    stream_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*MUTATION_ROLES)),
+):
+    """
+    Stop an active video stream session.
+    RBAC: Safety Officer, Site Manager, Super Admin.
+    """
+    try:
+        stream = video_service.stop_stream(db, stream_id)
+        return stream
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop stream: {str(e)}"
+        )
+
+
+@router.get("/streams", response_model=List[VideoStreamOut])
+def list_streams(
+    site_id: Optional[str] = Query(None),
+    status: Optional[StreamStatus] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List video streams with optional site and status filters.
+    RBAC: Any authenticated user (including Viewer).
+    """
+    return video_service.list_streams(db, site_id=site_id, status=status, limit=limit)
+
+
+@router.get("/streams/{stream_id}", response_model=VideoStreamOut)
+def get_stream(
+    stream_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get detailed metadata and status of a video stream.
+    RBAC: Any authenticated user.
+    """
+    stream = video_service.get_stream(db, stream_id)
+    if not stream:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stream not found: {stream_id}"
+        )
+    return stream
+
+
+@router.get("/streams/{stream_id}/events", response_model=List[VideoEventOut])
+def get_stream_events(
+    stream_id: str,
+    limit: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve chronological safety events generated by a stream.
+    RBAC: Any authenticated user.
+    """
+    stream = video_service.get_stream(db, stream_id)
+    if not stream:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stream not found: {stream_id}"
+        )
+    return video_service.get_stream_events(db, stream_id, limit=limit)
+
+
+@router.post("/streams/{stream_id}/process-frame", response_model=VideoProcessFrameOut)
+def process_stream_frame(
+    stream_id: str,
+    payload: VideoProcessFrameRequest = Body(default_factory=VideoProcessFrameRequest),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*MUTATION_ROLES)),
+):
+    """
+    Ingest and process a single frame from the video stream.
+    RBAC: Safety Officer, Site Manager, Super Admin.
+    """
+    try:
+        result = video_service.process_frame(
+            db=db,
+            stream_id=stream_id,
+            frame_number=payload.frame_number,
+            scenario_id=payload.scenario_id,
+            metadata=payload.metadata,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Frame processing error: {str(e)}"
+        )
+
+
+# ── Site Video Surveillance Endpoints ────────────────────────────────────────
+
+@router.get("/sites/{site_id}/streams", response_model=List[VideoStreamOut])
+def get_site_streams(
+    site_id: str,
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve all video streams associated with a construction site.
+    RBAC: Any authenticated user.
+    """
+    return video_service.list_streams(db, site_id=site_id, limit=limit)
+
+
+@router.get("/sites/{site_id}/live-status", response_model=VideoLiveStatusOut)
+def get_site_live_status(
+    site_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get aggregated live video surveillance status for a construction site.
+    Includes active stream counts, compliance rate, active alerts, and recent events.
+    RBAC: Any authenticated user.
+    """
+    try:
+        return video_service.get_site_live_status(db, site_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch site live status: {str(e)}"
+        )
+
+
+# ── Camera Zones Endpoints ──────────────────────────────────────────────────
+
+@router.get("/zones/{site_id}", response_model=List[CameraZoneOut])
+def get_site_zones(
+    site_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve camera and scene monitoring zones configured for a site.
+    RBAC: Any authenticated user.
+    """
+    zones = video_service.ensure_default_zones(db, site_id)
+    return zones
+
+
+@router.post("/zones", response_model=CameraZoneOut, status_code=status.HTTP_201_CREATED)
+def create_camera_zone(
+    payload: CameraZoneCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.SAFETY_OFFICER)),
+):
+    """
+    Configure a new camera/scene zone for a site.
+    RBAC: Safety Officer, Super Admin.
+    """
+    import uuid
+    from datetime import datetime, timezone
+
+    zone = CameraZone(
+        id=str(uuid.uuid4()),
+        zone_id=f"ZONE-{uuid.uuid4().hex[:6].upper()}",
+        site_id=payload.site_id,
+        name=payload.name,
+        zone_type=payload.zone_type,
+        boundary=payload.boundary,
+        risk_level=payload.risk_level,
+        max_capacity=payload.max_capacity,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(zone)
+    db.commit()
+    db.refresh(zone)
+    return zone
+
+
+# ── Demo Scenarios Endpoints ─────────────────────────────────────────────────
+
+@router.get("/demo-scenarios", response_model=List[VideoDemoScenarioOut])
+def list_demo_scenarios(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List the 5 predefined deterministic demo scenarios for Phase 3.1.
+    All scenarios explicitly marked: DEMO / SIMULATION.
+    """
+    return [
+        {
+            "id": s["id"],
+            "name": s["name"],
+            "description": s["description"],
+            "expected_violations": s["expected_violations"],
+            "expected_severity": s["expected_severity"],
+            "summary": s["summary"],
+        }
+        for s in VIDEO_DEMO_SCENARIOS.values()
+    ]
+
+
+@router.post("/demo-scenario")
+def run_demo_scenario(
+    payload: VideoDemoScenarioRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.SUPER_ADMIN,
+            UserRole.SAFETY_OFFICER,
+            UserRole.SITE_MANAGER,
+            UserRole.PROJECT_MANAGER,
+        )
+    ),
+):
+    """
+    Execute one of the 5 predefined deterministic video surveillance demo scenarios.
+    RBAC: Safety Officer, Site Manager, Project Manager, Super Admin.
+    """
+    try:
+        result = video_service.run_demo_scenario(
+            db=db,
+            scenario_id=payload.scenario_id,
+            site_id=payload.site_id,
+            user_id=current_user.id,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to execute demo scenario: {str(e)}"
+        )
