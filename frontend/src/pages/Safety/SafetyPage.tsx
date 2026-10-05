@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,7 +27,7 @@ import type {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer'];
+const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer', 'viewer'];
 
 const FINDING_TYPE_LABEL: Record<string, string> = {
   ppe_violation: 'PPE Violation',
@@ -735,6 +735,12 @@ export default function SafetyPage() {
     queryFn: () => sitesApi.list().then(r => r.data),
   });
 
+  useEffect(() => {
+    if (!selectedSiteId && sites && sites.length > 0) {
+      setSelectedSiteId(sites[0].id);
+    }
+  }, [selectedSiteId, sites]);
+
   const { data: safetySummary, refetch: refetchSummary } = useQuery<SiteSafetySummary>({
     queryKey: ['safety-summary', selectedSiteId],
     queryFn: () => safetyApi.getSiteSummary(selectedSiteId).then(r => r.data),
@@ -1004,7 +1010,7 @@ export default function SafetyPage() {
         <div>
           <h1 className="page-title">Safety Intelligence &amp; PPE Detection</h1>
           <p className="page-subtitle">
-            SafetyAgent (Phase 2.1) + Computer Vision PPE Compliance (Phase 2.2)
+            Autonomous Safety Intelligence, Computer Vision PPE Compliance & Real-Time Monitoring
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1040,7 +1046,7 @@ export default function SafetyPage() {
           <Camera className="w-4 h-4" />
           Computer Vision PPE Analysis
           <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-bold">
-            Phase 2.2
+            Computer Vision
           </span>
         </button>
         <button
@@ -1055,7 +1061,7 @@ export default function SafetyPage() {
           <Radio className="w-4 h-4" />
           Worker Safety Monitoring
           <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-bold">
-            Phase 2.3
+            Real-Time
           </span>
         </button>
         <button
@@ -1070,7 +1076,7 @@ export default function SafetyPage() {
           <Video className="w-4 h-4" />
           Live Video Monitoring
           <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-300 font-bold">
-            Phase 3.1
+            Surveillance
           </span>
         </button>
       </div>
@@ -1534,7 +1540,7 @@ export default function SafetyPage() {
                 <Play size={16} className="text-indigo-400" />
               </div>
               <div>
-                <h3 className="section-title">Phase 2.2 Deterministic Demo Fixtures</h3>
+                <h3 className="section-title">Deterministic PPE Demo Fixtures</h3>
                 <p className="text-xs text-slate-500">
                   Clearly labeled <span className="font-mono text-amber-400">DEMO / MOCK</span> test scenarios verifying all 5 required edge cases
                 </p>

@@ -30,7 +30,8 @@ def migrate_db_columns(engine):
     """Ensure newly added columns and tables exist in existing database without data loss."""
     from sqlalchemy import inspect, text
     try:
-        Base.metadata.create_all(bind=engine)
+        from app.models.models import Base as ModelsBase
+        ModelsBase.metadata.create_all(bind=engine)
         inspector = inspect(engine)
         tables = inspector.get_table_names()
 

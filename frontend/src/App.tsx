@@ -8,7 +8,9 @@ import { ProtectedRoute, GuestRoute } from '@/components/layout/ProtectedRoute';
 
 // Pages
 import LoginPage from '@/pages/Login/LoginPage';
+import RegisterPage from '@/pages/Register/RegisterPage';
 import DashboardPage from '@/pages/Dashboard/DashboardPage';
+import ExecutiveDashboardPage from '@/pages/Dashboard/ExecutiveDashboardPage';
 import ProjectsPage from '@/pages/Projects/ProjectsPage';
 import CreateProjectPage from '@/pages/Projects/CreateProjectPage';
 import SitesPage from '@/pages/Sites/SitesPage';
@@ -20,8 +22,11 @@ import UsersPage from '@/pages/Users/UsersPage';
 import SafetyPage from '@/pages/Safety/SafetyPage';
 import CompliancePage from '@/pages/Compliance/CompliancePage';
 import InsurancePage from '@/pages/Insurance/InsurancePage';
+import ReportsPage from '@/pages/Reports/ReportsPage';
+import VideoSurveillancePage from '@/pages/VideoSurveillance/VideoSurveillancePage';
+import AgentOrchestrationPage from '@/pages/Orchestration/AgentOrchestrationPage';
 import {
-  IncidentsPage, InspectionsPage, ReportsPage, SettingsPage,
+  IncidentsPage, InspectionsPage, SettingsPage,
   NotFoundPage, UnauthorizedPage
 } from '@/pages/Placeholders';
 
@@ -42,12 +47,15 @@ export default function App() {
           {/* Guest routes */}
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<RegisterPage />} />
+            <Route path="/register" element={<RegisterPage />} />
           </Route>
 
           {/* Protected app routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/executive-dashboard" element={<ExecutiveDashboardPage />} />
 
               {/* Projects */}
               <Route path="/projects" element={<ProjectsPage />} />
@@ -66,9 +74,11 @@ export default function App() {
               <Route path="/safety" element={<SafetyPage />} />
               <Route path="/compliance" element={<CompliancePage />} />
               <Route path="/insurance" element={<InsurancePage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/video-surveillance" element={<VideoSurveillancePage />} />
+              <Route path="/orchestration" element={<AgentOrchestrationPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               <Route path="/inspections" element={<InspectionsPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
 
               {/* System */}
               <Route path="/notifications" element={<NotificationsPage />} />

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from app.models.models import (
     UserRole, ProjectStatus, SiteStatus, WorkerRole,
@@ -10,7 +10,8 @@ from app.models.models import (
     AlertSeverity, AlertStatus, AlertPriority, NotificationChannel,
     AlertAuditEventType, StreamStatus, VideoSourceType, VideoEventType, ZoneType,
     ComplianceRuleCategory, ComplianceStatus, InspectionRequirementStatus,
-    InsuranceRiskLevel, ClaimRiskLevel
+    InsuranceRiskLevel, ClaimRiskLevel,
+    ReportType, ReportStatus
 )
 
 
@@ -19,6 +20,37 @@ from app.models.models import (
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class RegisterRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+    confirm_password: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    role: Optional[UserRole] = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, v: str) -> str:
+        name = v.strip()
+        if len(name) < 2:
+            raise ValueError("Full name must be at least 2 characters long")
+        return name
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        return v
+
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -1211,5 +1243,304 @@ class InsuranceDemoScenarioRequest(BaseModel):
     site_id: Optional[str] = None
 
 
+# ── Milestone 4 Phase 4.1 Reporting Agent Schemas ──────────────────────────
+
+class ReportGenerateRequest(BaseModel):
+    site_id: str
+    report_type: ReportType = ReportType.DAILY_SITE
+    title: Optional[str] = None
+    reporting_period_start: Optional[datetime] = None
+    reporting_period_end: Optional[datetime] = None
 
 
+class GeneratedReportSummaryOut(BaseModel):
+    id: str
+    report_id: str
+    site_id: Optional[str] = None
+    project_id: Optional[str] = None
+    report_type: ReportType
+    title: str
+    reporting_period_start: Optional[datetime] = None
+    reporting_period_end: Optional[datetime] = None
+    generated_at: datetime
+    status: ReportStatus
+    summary: Optional[str] = None
+    created_by: Optional[str] = None
+    metrics: Optional[Any] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GeneratedReportOut(GeneratedReportSummaryOut):
+    content: Any
+
+
+class ReportTypeInfoOut(BaseModel):
+    type: str
+    name: str
+    description: str
+    target_audience: str
+    frequency: str
+
+
+# ── Milestone 4 Phase 4.2 Construction Risk Intelligence Engine Schemas ────
+
+class RiskIntelligenceAnalysisRequest(BaseModel):
+    site_id: str
+    project_id: Optional[str] = None
+    analysis_window_days: Optional[int] = 30
+    include_predictions: Optional[bool] = True
+    include_patterns: Optional[bool] = True
+    include_recommendations: Optional[bool] = True
+
+
+class CategoryRiskBreakdownOut(BaseModel):
+    site_risk_score: float
+    safety_risk_score: float
+    compliance_risk_score: float
+    insurance_risk_score: float
+    weights: dict[str, float]
+
+
+class RecurringPatternOut(BaseModel):
+    pattern_id: str
+    category: str
+    pattern_type: str
+    pattern_description: str
+    occurrence_count: int
+    first_observed: Optional[str] = None
+    last_observed: Optional[str] = None
+    time_window_hours: int
+    severity: str
+    velocity: str
+    locations: List[str] = []
+    sample_finding_ids: List[str] = []
+
+
+class IncidentLeadingIndicatorOut(BaseModel):
+    indicator: str
+    severity: str
+    observed_value: str
+
+
+class PotentialIncidentPredictionOut(BaseModel):
+    prediction_id: str
+    incident_type: str
+    probability_score: float
+    severity_potential: str
+    predicted_timeframe: str
+    primary_driver: str
+    causal_chain: List[str] = []
+    leading_indicators: List[IncidentLeadingIndicatorOut] = []
+    recommended_interventions: List[str] = []
+
+
+class OperationalRecommendationOut(BaseModel):
+    recommendation_id: str
+    category: str
+    priority: str
+    timeframe: str
+    title: str
+    action_items: List[str] = []
+    expected_risk_reduction: str
+    target_hazard_types: List[str] = []
+    cost_impact_level: str
+
+
+class RiskIntelligenceAssessmentOut(BaseModel):
+    id: str
+    assessment_id: str
+    project_id: Optional[str] = None
+    site_id: str
+    overall_risk_score: float
+    risk_level: str
+    category_scores: Optional[Any] = None
+    recurring_patterns: Optional[Any] = None
+    predicted_incidents: Optional[Any] = None
+    recommendations: Optional[Any] = None
+    findings_count: int
+    critical_findings_count: int
+    high_findings_count: int
+    medium_findings_count: int
+    low_findings_count: int
+    assessed_at: datetime
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("category_scores", mode="before")
+    @classmethod
+    def normalize_category_scores(cls, v: Any) -> Any:
+        if not isinstance(v, dict):
+            return v
+        scores = dict(v)
+        for key in ["site_risk", "safety_risk", "compliance_risk", "insurance_risk"]:
+            score_key = f"{key}_score"
+            if score_key not in scores or scores[score_key] is None:
+                pillar_val = scores.get(key)
+                if isinstance(pillar_val, dict):
+                    scores[score_key] = float(pillar_val.get("score", 0.0))
+                elif isinstance(pillar_val, (int, float)):
+                    scores[score_key] = float(pillar_val)
+                else:
+                    scores[score_key] = 0.0
+        if "weights" not in scores or not isinstance(scores["weights"], dict):
+            scores["weights"] = {
+                "site_risk": 0.3,
+                "safety_risk": 0.3,
+                "compliance_risk": 0.2,
+                "insurance_risk": 0.2,
+            }
+        return scores
+
+
+# ── Milestone 4 Phase 4.3 Executive Project Dashboard Schemas ───────────────
+
+class ExecutiveDashboardSiteInfo(BaseModel):
+    site_id: str
+    site_name: str
+    site_code: Optional[str] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    status: str
+    location: Optional[str] = None
+    manager: Optional[str] = None
+
+
+class ExecutiveDashboardAssessment(BaseModel):
+    assessment_id: Optional[str] = None
+    generated_at: Optional[datetime] = None
+    overall_risk_score: float
+    overall_risk_level: str
+    scoring_explanation: Optional[str] = None
+    category_scores: Optional[Dict[str, Any]] = None
+    data_quality: Optional[Dict[str, Any]] = None
+
+
+class ExecutiveDashboardHealth(BaseModel):
+    health_status: str  # "HEALTHY" | "MODERATE_RISK" | "ELEVATED" | "CRITICAL_ACTION_REQUIRED"
+    health_score: float  # 0 to 100 (100 = best health)
+    total_active_findings: int
+    critical_findings_count: int
+    high_findings_count: int
+    unresolved_issues_count: int
+    active_safety_alerts_count: int
+    compliance_violations_count: int
+    overdue_inspections_count: int
+    insurance_exposure_index: float
+    open_insurance_claims_count: int
+    active_workers_count: int
+    active_equipment_count: int
+
+
+class ExecutiveCriticalFinding(BaseModel):
+    id: str
+    finding_id: str
+    source_agent: str  # "site_risk" | "safety" | "compliance" | "insurance"
+    category: str
+    severity: str
+    risk_score: float
+    title: str
+    description: str
+    location: Optional[str] = None
+    status: str
+    detected_at: Optional[datetime] = None
+    evidence: Optional[str] = None
+    navigation_url: Optional[str] = None
+
+
+class ExecutiveSafetySnapshot(BaseModel):
+    safety_score: float
+    ppe_compliance_rate: float
+    active_workers_count: int
+    active_alerts_count: int
+    critical_findings_count: int
+    last_assessment_date: Optional[datetime] = None
+    status: str
+
+
+class ExecutiveComplianceSnapshot(BaseModel):
+    compliance_score: float
+    compliance_status: str
+    total_rules_evaluated: int
+    rules_passed: int
+    rules_violated: int
+    critical_violations_count: int
+    overdue_inspections_count: int
+    last_assessment_date: Optional[datetime] = None
+
+
+class ExecutiveInsuranceSnapshot(BaseModel):
+    insurance_risk_score: float
+    insurance_risk_level: str
+    exposure_index: float
+    estimated_liability_exposure: Optional[str] = None
+    unresolved_findings_count: int
+    active_claims_count: int
+    underwriting_recommendations: List[str] = []
+    last_assessment_date: Optional[datetime] = None
+
+
+class ExecutiveDashboardResponse(BaseModel):
+    site: ExecutiveDashboardSiteInfo
+    assessment: Optional[ExecutiveDashboardAssessment] = None
+    health: ExecutiveDashboardHealth
+    pillar_scores: Dict[str, Any]
+    critical_findings: List[ExecutiveCriticalFinding] = []
+    recurring_patterns: List[RecurringPatternOut] = []
+    potential_incidents: List[PotentialIncidentPredictionOut] = []
+    recommendations: List[OperationalRecommendationOut] = []
+    safety_summary: ExecutiveSafetySnapshot
+    compliance_summary: ExecutiveComplianceSnapshot
+    insurance_summary: ExecutiveInsuranceSnapshot
+    recent_reports: List[GeneratedReportSummaryOut] = []
+    history: List[Any] = []
+    last_analysis_time: Optional[datetime] = None
+    data_freshness: str = "LIVE"
+
+
+# ── Milestone 4 Phase 4.4 Agent Orchestration Schemas ─────────────────────
+
+class AgentExecutionStatus(BaseModel):
+    agent_name: str
+    status: str
+    duration_ms: float = 0.0
+    error: Optional[str] = None
+    message: Optional[str] = None
+    output_summary: Optional[Dict[str, Any]] = None
+
+
+class OrchestrationRequest(BaseModel):
+    site_id: str
+    project_id: Optional[str] = None
+    agents: Optional[List[str]] = None
+    mode: Optional[str] = "FULL_ANALYSIS"
+    generate_report: Optional[bool] = False
+    report_type: Optional[ReportType] = ReportType.EXECUTIVE_SUMMARY
+    is_simulation: Optional[bool] = False
+
+
+class OrchestrationRunResponse(BaseModel):
+    id: str
+    execution_id: str
+    site_id: str
+    project_id: Optional[str] = None
+    status: str
+    execution_mode: str
+    requested_agents: List[str] = []
+    agent_statuses: Dict[str, Any] = {}
+    risk_intelligence_id: Optional[str] = None
+    report_id: Optional[str] = None
+    duration_ms: float = 0.0
+    warnings: List[str] = []
+    errors: List[str] = []
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrchestrationHistoryResponse(BaseModel):
+    runs: List[OrchestrationRunResponse]
+    total: int

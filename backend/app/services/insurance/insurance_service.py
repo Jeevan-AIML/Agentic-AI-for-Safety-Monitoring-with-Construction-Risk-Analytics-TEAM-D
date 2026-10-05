@@ -108,7 +108,11 @@ class InsuranceService:
                     {
                         "id": w.id,
                         "role": w.role.value if hasattr(w.role, "value") else str(w.role),
-                        "safety_training_status": w.safety_training_status.value if hasattr(w.safety_training_status, "value") else str(w.safety_training_status),
+                        "safety_training_status": (
+                            getattr(w, "safety_training", getattr(w, "safety_training_status", None)).value
+                            if hasattr(getattr(w, "safety_training", getattr(w, "safety_training_status", None)), "value")
+                            else str(getattr(w, "safety_training", getattr(w, "safety_training_status", "certified")))
+                        ),
                     }
                     for w in workers
                 ]

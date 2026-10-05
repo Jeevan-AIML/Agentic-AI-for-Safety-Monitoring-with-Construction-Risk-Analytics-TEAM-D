@@ -39,7 +39,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'risk-history', label: 'Risk History', icon: <TrendingUp size={14} /> },
 ];
 
-const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer'];
+const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer', 'viewer'];
 
 export default function SiteDetailPage() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -229,7 +229,7 @@ export default function SiteDetailPage() {
                   {RISK_LABEL_MAP[site.risk_category as RiskCategory]} RISK
                 </span>
                 <span className="badge bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs">
-                  Agent: Site Risk Agent (Phase 1.3 Verified)
+                  Agent: Site Risk Agent Active
                 </span>
               </div>
               <h1 className="text-2xl font-bold text-slate-100 mb-1">{site.name}</h1>

@@ -103,18 +103,24 @@ export function KPICard({
 interface RiskGaugeProps {
   score: number;
   size?: number;
+  label?: string;
+  displayValue?: string | number;
 }
 
-export function RiskGauge({ score, size = 120 }: RiskGaugeProps) {
+export function RiskGauge({ score, size = 120, label: customLabel, displayValue }: RiskGaugeProps) {
   const color = getRiskColor(score);
-  const label = getRiskLabel(score);
+  const label = customLabel || getRiskLabel(score);
   const r = 45;
   const cx = 60;
   const cy = 60;
   const circumference = 2 * Math.PI * r;
   // 270 degrees of arc (start -225deg end 45deg)
   const arcLength = circumference * 0.75;
-  const fillLength = arcLength * (score / 100);
+  const fillLength = arcLength * (Math.min(100, Math.max(0, score)) / 100);
+
+  const formattedScore = displayValue !== undefined
+    ? displayValue
+    : (Number.isInteger(score) ? score : score.toFixed(1));
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -146,7 +152,7 @@ export function RiskGauge({ score, size = 120 }: RiskGaugeProps) {
         />
         {/* Score text */}
         <text x={cx} y={cy - 4} textAnchor="middle" className="tabular-nums" fill={color} fontSize="20" fontWeight="700">
-          {Math.round(score)}
+          {formattedScore}
         </text>
         <text x={cx} y={cy + 14} textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="600">
           {label}

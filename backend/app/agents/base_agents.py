@@ -137,16 +137,39 @@ class InsuranceAgent(BaseAgent):
 
 
 class ReportingAgent(BaseAgent):
-    """Reporting Agent — Phase 3 (Automated report generation)"""
+    """Reporting Agent — Milestone 4 Phase 4.1 (Multi-agent findings reporting)"""
 
     def __init__(self):
-        super().__init__("reporting_agent_v1", "Reporting Agent", "0.1.0-stub")
+        super().__init__("reporting_agent_v1", "Reporting Agent", "1.0.0-phase4.1")
+        self.is_active = True
+        from app.agents.reporting_agent import reporting_agent as real_reporting_agent
+        self._agent = real_reporting_agent
 
     async def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError("Reporting Agent not yet implemented. Coming in Phase 3.")
+        self.last_run = datetime.utcnow()
+        return await self._agent.run(context)
 
     async def health_check(self) -> bool:
-        return False
+        return True
+
+
+class RiskIntelligenceAgent(BaseAgent):
+    """Construction Risk Intelligence Engine — Milestone 4 Phase 4.2"""
+
+    def __init__(self):
+        super().__init__("risk_intelligence_v1", "Risk Intelligence Engine", "1.0.0-phase4.2")
+        self.is_active = True
+
+    async def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        self.last_run = datetime.utcnow()
+        return {
+            "status": "ACTIVE",
+            "agent": "risk_intelligence",
+            "version": self.version,
+        }
+
+    async def health_check(self) -> bool:
+        return True
 
 
 class AgentOrchestrator:
@@ -154,8 +177,8 @@ class AgentOrchestrator:
     Agent Orchestrator
     ==================
     Coordinates all agents and manages their lifecycle.
-    Phase 1.1: Stub — returns agent status only.
-    Phase 1.2+: Will route data to appropriate agents.
+    Phase 4.4: Coordinates Site Risk, Safety, Compliance, Insurance,
+    Risk Intelligence, and Reporting agents.
     """
 
     def __init__(self):
@@ -164,6 +187,7 @@ class AgentOrchestrator:
             "safety": SafetyAgent(),
             "compliance": ComplianceAgent(),
             "insurance": InsuranceAgent(),
+            "risk_intelligence": RiskIntelligenceAgent(),
             "reporting": ReportingAgent(),
         }
 
@@ -178,3 +202,4 @@ class AgentOrchestrator:
 
 # Global orchestrator instance
 orchestrator = AgentOrchestrator()
+

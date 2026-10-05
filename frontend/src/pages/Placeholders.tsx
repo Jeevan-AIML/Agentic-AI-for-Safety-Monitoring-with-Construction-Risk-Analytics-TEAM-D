@@ -106,12 +106,15 @@ export function SettingsPage() {
           <div className="space-y-4">
             {[
               ['Application', 'ACRIP — Agentic Construction Risk Intelligence Platform'],
-              ['Version', '1.0.0 — Phase 1.1'],
+              ['Version', '1.0.0 (Integrated Platform)'],
               ['Build', 'Production Ready'],
-              ['Site Risk Agent', 'Pending — Phase 1.2'],
-              ['Safety Agent', 'Pending — Phase 2'],
-              ['Compliance Agent', 'Pending — Phase 2'],
-              ['Insurance Agent', 'Pending — Phase 3'],
+              ['Site Risk Agent', 'Active (Telemetry & Environmental Rules)'],
+              ['Safety Agent', 'Active (Worker Protection & Computer Vision PPE)'],
+              ['Compliance Agent', 'Active (OSHA & Statutory Rule Engine)'],
+              ['Insurance Agent', 'Active (Underwriting Exposure & Claims)'],
+              ['Risk Intelligence Engine', 'Active (Deterministic 4-Pillar Model)'],
+              ['Reporting Agent', 'Active (Multi-Agent Document Generator)'],
+              ['Agent Orchestrator', 'Active (Coordinated Pipeline)'],
               ['Database', 'SQLite (Dev) / PostgreSQL (Prod)'],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between py-3 border-b border-slate-800 last:border-0 text-sm">

@@ -5,13 +5,14 @@ Milestone 2 - Phase 2.2: Computer Vision PPE Compliance Detection.
 
 from typing import List, Optional
 import os
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Header
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.api.dependencies import get_current_user, require_roles
 from app.core.config import settings
+from app.core.security import decode_token
 from app.models.models import User, UserRole, PPEAnalysis
 from app.schemas.schemas import (
     PPEAnalysisOut,
@@ -41,7 +42,7 @@ async def analyze_ppe_image(
 ):
     """
     Upload and analyze a construction site image for PPE compliance using Computer Vision.
-    Accessible to Safety Officers, Site Managers, Project Managers, and Admins.
+    Accessible to all authenticated project members.
     """
     try:
         file_bytes = await file.read()
@@ -134,23 +135,60 @@ def get_worker_ppe_analyses(
     return analyses
 
 
+def _authenticate_image_access(
+    token: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+) -> User:
+    raw_token = None
+    if authorization and authorization.startswith("Bearer "):
+        raw_token = authorization.split("Bearer ", 1)[1].strip()
+    elif token:
+        raw_token = token.strip()
+
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token required to view PPE analysis image.",
+        )
+
+    payload = decode_token(raw_token)
+    if not payload or not payload.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired authentication token.",
+        )
+
+    user = db.query(User).filter(User.id == payload["sub"]).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive or not found.",
+        )
+    return user
+
+
 @router.get("/image/{filename}")
 def get_ppe_image(
     filename: str,
-    current_user: User = Depends(get_current_user),
+    _: User = Depends(_authenticate_image_access),
 ):
     """
     Safely serve stored PPE analysis images.
-    Prevents path traversal and verifies authenticated session.
+    Prevents path traversal and verifies authenticated session via Bearer header or token query parameter.
     """
     clean_filename = os.path.basename(filename)
-    file_path = os.path.join(settings.PPE_UPLOAD_DIR, clean_filename)
+    file_path = os.path.join(ppe_detection_service.upload_dir, clean_filename)
 
     if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found.",
-        )
+        alt_path = os.path.join(settings.PPE_UPLOAD_DIR, clean_filename)
+        if os.path.exists(alt_path):
+            file_path = alt_path
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Image not found.",
+            )
 
     ext = os.path.splitext(clean_filename)[1].lower()
     media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"

@@ -34,6 +34,8 @@ export default api;
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
+  register: (data: { full_name: string; email: string; password: string; confirm_password?: string; phone?: string; department?: string; role?: string }) =>
+    api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
   listUsers: () => api.get('/auth/users'),
@@ -514,6 +516,107 @@ export const insuranceApi = {
     api.post('/insurance/demo-scenarios/run', { scenario_id: scenarioId, site_id: siteId }),
 };
 
+// ── Milestone 4 Phase 4.1 Reporting Agent ─────────────────────────────────
 
+export const reportsApi = {
+  /** Get supported report types and metadata */
+  getTypes: () => api.get('/reports/types'),
 
+  /** Generate and save a new multi-agent intelligence report */
+  generate: (data: {
+    site_id: string;
+    report_type: string;
+    title?: string;
+    reporting_period_start?: string;
+    reporting_period_end?: string;
+  }) => api.post('/reports/generate', data),
+
+  /** List generated reports */
+  list: (params?: {
+    site_id?: string;
+    project_id?: string;
+    report_type?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/reports', { params }),
+
+  /** Get specific generated report */
+  get: (reportId: string) => api.get(`/reports/${reportId}`),
+
+  /** Delete a report */
+  delete: (reportId: string) => api.delete(`/reports/${reportId}`),
+};
+
+// ── Milestone 4 Phase 4.2 Construction Risk Intelligence Engine ───────────
+
+export const riskIntelligenceApi = {
+  /** Trigger comprehensive multi-agent risk intelligence analysis */
+  analyze: (data: {
+    site_id: string;
+    project_id?: string;
+    analysis_window_days?: number;
+    include_predictions?: boolean;
+    include_patterns?: boolean;
+    include_recommendations?: boolean;
+  }) => api.post('/risk-intelligence/analyze', data),
+
+  /** Get latest risk intelligence assessment for a site */
+  getLatest: (siteId: string) => api.get(`/risk-intelligence/site/${siteId}`),
+
+  /** Get recurring risk patterns */
+  getPatterns: (siteId: string, params?: { window_days?: number; min_threshold?: number }) =>
+    api.get(`/risk-intelligence/patterns/${siteId}`, { params }),
+
+  /** Get potential incident predictions & causal chains */
+  getPredictions: (siteId: string, params?: { window_days?: number }) =>
+    api.get(`/risk-intelligence/predictions/${siteId}`, { params }),
+
+  /** Get operational recommendations */
+  getRecommendations: (siteId: string, params?: { window_days?: number }) =>
+    api.get(`/risk-intelligence/recommendations/${siteId}`, { params }),
+
+  /** Get historical risk intelligence assessments */
+  getHistory: (siteId: string, limit?: number) =>
+    api.get(`/risk-intelligence/history/${siteId}`, { params: { limit } }),
+};
+
+// ── Milestone 4 Phase 4.3 Executive Project Dashboard ──────────────────────
+
+export const executiveDashboardApi = {
+  /** Get consolidated executive dashboard for a specific site */
+  getSiteDashboard: (siteId: string) =>
+    api.get(`/dashboard/executive/${siteId}`),
+
+  /** Get executive dashboard overview (optional siteId query param) */
+  getOverview: (siteId?: string) =>
+    api.get('/dashboard/executive', { params: siteId ? { site_id: siteId } : {} }),
+};
+
+// ── Milestone 4 Phase 4.4 Agent Orchestration ──────────────────────────────
+
+export const orchestrationApi = {
+  /** Trigger cross-agent orchestration workflow */
+  run: (data: {
+    site_id: string;
+    project_id?: string;
+    mode?: string;
+    agents?: string[];
+    generate_report?: boolean;
+    report_type?: string;
+    is_simulation?: boolean;
+  }) => api.post('/orchestration/run', data),
+
+  /** Get execution run details by execution ID */
+  get: (executionId: string) => api.get(`/orchestration/${executionId}`),
+
+  /** Lightweight status polling for an active execution run */
+  getStatus: (executionId: string) => api.get(`/orchestration/${executionId}/status`),
+
+  /** Get latest orchestration run for a site */
+  getLatest: (siteId: string) => api.get(`/orchestration/site/${siteId}/latest`),
+
+  /** List historical orchestration runs for a site */
+  getHistory: (siteId: string, params?: { limit?: number; offset?: number }) =>
+    api.get(`/orchestration/site/${siteId}/history`, { params }),
+};
 

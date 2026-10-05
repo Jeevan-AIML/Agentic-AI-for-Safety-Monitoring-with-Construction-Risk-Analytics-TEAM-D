@@ -10,7 +10,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/sites", tags=["Sites"])
 
-WRITE_ROLES = [UserRole.SUPER_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_MANAGER]
+WRITE_ROLES = [UserRole.SUPER_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_MANAGER, UserRole.SAFETY_OFFICER, UserRole.VIEWER]
 
 
 def _enrich_site(s: Site, db: Session) -> SiteOut:
@@ -56,7 +56,14 @@ def create_site(
     existing = db.query(Site).filter(Site.site_id == payload.site_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Site ID already exists")
-    site = Site(id=str(uuid.uuid4()), **payload.model_dump())
+    site_data = payload.model_dump()
+    if not site_data.get("project_id"):
+        site_data["project_id"] = None
+    if not site_data.get("manager_id"):
+        site_data["manager_id"] = None
+    if not site_data.get("site_type"):
+        site_data["site_type"] = None
+    site = Site(id=str(uuid.uuid4()), **site_data)
     db.add(site)
     db.commit()
     db.refresh(site)

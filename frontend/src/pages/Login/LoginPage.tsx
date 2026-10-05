@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, Shield, Truck, Lock, AlertCircle, ChevronRight, Activity } from 'lucide-react';
+import { Eye, EyeOff, Shield, Truck, Lock, AlertCircle, ChevronRight, Activity, CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -29,14 +29,25 @@ const DEMO_USERS = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    if (location.state?.email) {
+      setValue('email', location.state.email);
+    }
+    if (location.state?.registered) {
+      setSuccessMsg('Account created successfully! Please enter your password to sign in.');
+    }
+  }, [location.state, setValue]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -152,6 +163,18 @@ export default function LoginPage() {
           <span className="text-xs text-primary-400">Secure access to construction risk intelligence.</span>
         </div>
 
+        {/* Success from Registration */}
+        {successMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 mb-5"
+          >
+            <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+            <span className="text-xs text-green-400">{successMsg}</span>
+          </motion.div>
+        )}
+
         {/* Error */}
         {error && (
           <motion.div
@@ -226,6 +249,16 @@ export default function LoginPage() {
             {!loading && <ChevronRight size={16} />}
           </button>
         </form>
+
+        {/* Link to Sign Up */}
+        <div className="mt-4 text-center">
+          <p className="text-sm text-slate-400">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="text-primary-400 hover:text-primary-300 font-medium transition-colors">
+              Sign Up
+            </Link>
+          </p>
+        </div>
 
         {/* Demo credentials */}
         <div className="mt-8">

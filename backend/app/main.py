@@ -18,6 +18,10 @@ from app.api.routes.alerts import router as alerts_router
 from app.api.routes.video import router as video_router
 from app.api.routes.compliance import router as compliance_router
 from app.api.routes.insurance import router as insurance_router
+from app.api.routes.reports import router as reports_router
+from app.api.routes.risk_intelligence import router as risk_intelligence_router
+from app.api.routes.executive_dashboard import router as executive_dashboard_router
+from app.api.routes.orchestration import router as orchestration_router
 from app.api.routes.misc import notifications_router, dashboard_router
 from app.agents.base_agents import orchestrator
 
@@ -41,7 +45,7 @@ async def lifespan(app: FastAPI):
     print(f"[INFO] {settings.APP_NAME} started")
     print(f"       Environment: {settings.APP_ENV}")
     print(f"       Database: {settings.DATABASE_URL.split('://')[0]}")
-    print(f"       Agents: {list(orchestrator.agents.keys())} (Phase 1.3 — Site Risk Agent active)")
+    print(f"       Agents: {list(orchestrator.agents.keys())} (Multi-Agent System active)")
 
     yield
 
@@ -51,7 +55,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     description="Agentic AI-powered construction safety and risk monitoring platform",
-    version="1.0.0-phase1.3",
+    version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     lifespan=lifespan,
@@ -87,6 +91,10 @@ app.include_router(alerts_router, prefix=PREFIX)
 app.include_router(video_router, prefix=PREFIX)
 app.include_router(compliance_router, prefix=PREFIX)
 app.include_router(insurance_router, prefix=PREFIX)
+app.include_router(reports_router, prefix=PREFIX)
+app.include_router(risk_intelligence_router, prefix=PREFIX)
+app.include_router(executive_dashboard_router, prefix=PREFIX)
+app.include_router(orchestration_router, prefix=PREFIX)
 app.include_router(notifications_router, prefix=PREFIX)
 app.include_router(dashboard_router, prefix=PREFIX)
 
@@ -98,7 +106,7 @@ def health():
     return {
         "status": "healthy",
         "app": settings.APP_NAME,
-        "version": "1.0.0-phase2.1",
+        "version": "1.0.0",
         "agents": orchestrator.get_all_statuses(),
     }
 

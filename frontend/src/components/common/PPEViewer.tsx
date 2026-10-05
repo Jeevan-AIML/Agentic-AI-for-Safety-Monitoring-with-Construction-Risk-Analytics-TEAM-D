@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useAuthStore } from '@/store/authStore';
 import {
   PPEAnalysis,
   PPEDetectionItem,
@@ -45,6 +46,16 @@ export const PPEViewer: React.FC<PPEViewerProps> = ({ analysis }) => {
     recommendations,
     findings,
   } = analysis;
+
+  const token = useAuthStore((s) => s.token);
+  const resolvedImageUrl = useMemo(() => {
+    if (!image_url) return '';
+    if (token && !image_url.includes('token=')) {
+      const sep = image_url.includes('?') ? '&' : '?';
+      return `${image_url}${sep}token=${encodeURIComponent(token)}`;
+    }
+    return image_url;
+  }, [image_url, token]);
 
   const isMock = detection_source === 'DEMO / MOCK';
 
@@ -183,7 +194,7 @@ export const PPEViewer: React.FC<PPEViewerProps> = ({ analysis }) => {
           <div className="relative w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center min-h-[420px]">
             {/* Base Image */}
             <img
-              src={image_url}
+              src={resolvedImageUrl}
               alt="PPE Construction Analysis"
               className="max-h-[580px] w-full object-contain rounded-lg select-none"
             />

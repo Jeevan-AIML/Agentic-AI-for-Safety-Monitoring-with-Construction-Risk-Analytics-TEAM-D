@@ -26,7 +26,7 @@ interface WorkerSafetyModalProps {
   onUpdated?: () => void;
 }
 
-const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer'];
+const WRITE_ROLES = ['super_admin', 'project_manager', 'site_manager', 'safety_officer', 'viewer'];
 
 const STANDARD_PPE_ITEMS = [
   { name: 'Helmet', icon: '🪖', required: true },
@@ -190,7 +190,7 @@ export default function WorkerSafetyModal({
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck size={13} className="text-emerald-400" />
-              PPE Foundation (Phase 2.1 Standard)
+              PPE Safety Compliance Standards
             </span>
             <span className="text-[11px] text-slate-500 font-mono">
               Status: {worker.ppe_status.toUpperCase()}

@@ -54,6 +54,9 @@ export default function CreateSitePage() {
   const onSubmit = (data: FormData) => {
     mutation.mutate({
       ...data,
+      project_id: data.project_id || undefined,
+      manager_id: data.manager_id || undefined,
+      site_type: data.site_type || undefined,
       latitude: data.latitude ? parseFloat(data.latitude) : undefined,
       longitude: data.longitude ? parseFloat(data.longitude) : undefined,
     });

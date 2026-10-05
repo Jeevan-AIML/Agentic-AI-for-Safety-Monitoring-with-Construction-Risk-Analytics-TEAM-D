@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { hazardsApi, sitesApi, riskIntelApi } from '@/services/api';
 import { EmptyState, Modal, PageLoader, RiskGauge, HazardDetailModal } from '@/components/common';
+import RiskIntelligencePanel from './RiskIntelligencePanel';
 import {
   HAZARD_STATUS_BADGE, HAZARD_STATUS_LABEL, HAZARD_TYPE_LABEL,
   RISK_BADGE_MAP, RISK_LABEL_MAP, formatRelativeTime, formatDate
@@ -48,6 +49,7 @@ export default function RiskMonitoringPage() {
   const [selectedHazard, setSelectedHazard] = useState<Hazard | null>(null);
   const [hazardModalOpen, setHazardModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [viewMode, setViewMode] = useState<'risk_intelligence' | 'site_monitoring'>('risk_intelligence');
 
   // Sites list
   const { data: sites } = useQuery({
@@ -197,7 +199,7 @@ export default function RiskMonitoringPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="badge bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-semibold">
-              Milestone 1 · Phase 1.3 Verified
+              Autonomous Site Risk Monitoring
             </span>
             <span className="badge bg-slate-800 border border-slate-700 text-slate-400 text-xs font-mono">
               Engine: RULE_ENGINE
@@ -253,8 +255,46 @@ export default function RiskMonitoringPage() {
         </div>
       </div>
 
-      {/* Deterministic Demo Scenarios Bar (Step 20) */}
-      <div className="card p-4 bg-gradient-to-r from-surface-850 via-surface-900 to-surface-850 border border-slate-800">
+      {/* View Switcher: Risk Intelligence Engine (Phase 4.2) vs Site Risk Telemetry (M1) */}
+      <div className="flex gap-2 p-1 rounded-lg bg-surface-900 border border-slate-800 w-fit">
+        <button
+          id="tab-risk-intelligence"
+          onClick={() => setViewMode('risk_intelligence')}
+          className={clsx(
+            'px-4 py-2 rounded-md text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer',
+            viewMode === 'risk_intelligence'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-surface-800'
+          )}
+        >
+          <Cpu size={14} />
+          <span>Construction Risk Intelligence Engine</span>
+          <span className="px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-200 text-[10px] font-bold">
+            4-Pillars
+          </span>
+        </button>
+
+        <button
+          id="tab-site-monitoring"
+          onClick={() => setViewMode('site_monitoring')}
+          className={clsx(
+            'px-4 py-2 rounded-md text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer',
+            viewMode === 'site_monitoring'
+              ? 'bg-primary-600 text-white shadow-md shadow-primary-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-surface-800'
+          )}
+        >
+          <ShieldAlert size={14} />
+          <span>Site Risk Telemetry & Hazards (M1)</span>
+        </button>
+      </div>
+
+      {viewMode === 'risk_intelligence' ? (
+        <RiskIntelligencePanel siteId={activeSiteId} siteName={activeSite?.name} />
+      ) : (
+        <>
+          {/* Deterministic Demo Scenarios Bar (Step 20) */}
+          <div className="card p-4 bg-gradient-to-r from-surface-850 via-surface-900 to-surface-850 border border-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <Play size={14} className="text-primary-400" />
@@ -625,6 +665,8 @@ export default function RiskMonitoringPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Reusable Hazard Details Modal (Step 17) */}
       <HazardDetailModal

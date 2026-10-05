@@ -263,12 +263,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Phase info banner */}
+      {/* Platform status banner */}
       <div className="mt-6 p-4 rounded-xl border border-primary-500/20 bg-primary-500/5 flex items-center gap-3">
         <Activity size={16} className="text-primary-400 shrink-0" />
         <div>
-          <span className="text-sm font-medium text-primary-300">Milestone 1 Complete (Phase 1.3 Verified)</span>
-          <span className="text-sm text-slate-400 ml-2">· Integrated Site Risk Agent (Rule Engine), deterministic hazard detection, multi-category scoring, and real-time hazard lifecycle management.</span>
+          <span className="text-sm font-medium text-primary-300">Integrated Risk Intelligence Platform</span>
+          <span className="text-sm text-slate-400 ml-2">· Autonomous multi-agent coordination active across Site Risk, Worker Safety, Compliance, Insurance Exposure, and Enterprise Reporting.</span>
         </div>
       </div>
     </motion.div>

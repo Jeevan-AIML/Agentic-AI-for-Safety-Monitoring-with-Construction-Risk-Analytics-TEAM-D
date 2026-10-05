@@ -20,8 +20,8 @@ router = APIRouter(prefix="/compliance", tags=["Compliance Intelligence"])
 compliance_service = ComplianceService()
 
 # Operational write roles
-OPERATIONAL_ROLES = [UserRole.SUPER_ADMIN, UserRole.SAFETY_OFFICER, UserRole.SITE_MANAGER]
-DEMO_ROLES = [UserRole.SUPER_ADMIN, UserRole.SAFETY_OFFICER, UserRole.SITE_MANAGER, UserRole.PROJECT_MANAGER]
+OPERATIONAL_ROLES = [UserRole.SUPER_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_MANAGER, UserRole.SAFETY_OFFICER]
+DEMO_ROLES = [UserRole.SUPER_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_MANAGER, UserRole.SAFETY_OFFICER]
 
 
 @router.post("/analyze/{site_id}", response_model=ComplianceAssessmentOut)
@@ -35,7 +35,7 @@ def analyze_site_compliance(
     if current_user.role not in OPERATIONAL_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Safety Officers, Site Managers, and Super Admins can execute compliance audits.",
+            detail="Insufficient permissions to execute compliance audits.",
         )
     is_sim = payload.is_simulation if payload else False
     try:
@@ -46,6 +46,7 @@ def analyze_site_compliance(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.get("/assessments/{site_id}/latest", response_model=Optional[ComplianceAssessmentOut])
 @router.get("/site/{site_id}", response_model=Optional[ComplianceAssessmentOut])
 def get_site_compliance(
     site_id: str,

@@ -13,6 +13,9 @@ from app.models.models import (
     ComplianceRule, InspectionRequirement, ComplianceFinding, ComplianceAssessment,
     InsuranceRiskLevel, ClaimRiskLevel,
     InsuranceRiskAssessment, InsuranceClaimAssessment, ClaimDocumentationPackage,
+    ReportType, ReportStatus, GeneratedReport,
+    ProjectRiskIntelligence,
+    OrchestrationStatus, OrchestrationMode, AgentOrchestrationRun,
 )
 
 __all__ = [
@@ -30,5 +33,8 @@ __all__ = [
     "ComplianceRule", "InspectionRequirement", "ComplianceFinding", "ComplianceAssessment",
     "InsuranceRiskLevel", "ClaimRiskLevel",
     "InsuranceRiskAssessment", "InsuranceClaimAssessment", "ClaimDocumentationPackage",
+    "ReportType", "ReportStatus", "GeneratedReport",
+    "ProjectRiskIntelligence",
+    "OrchestrationStatus", "OrchestrationMode", "AgentOrchestrationRun",
 ]
 

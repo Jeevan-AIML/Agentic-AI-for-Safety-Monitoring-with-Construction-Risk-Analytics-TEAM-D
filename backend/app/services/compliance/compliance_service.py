@@ -15,7 +15,7 @@ from app.models.models import (
     ComplianceRule, ComplianceFinding, ComplianceAssessment,
     SafetyFinding, SafetyFindingType, SafetyFindingStatus,
     RiskCategory, User, UserRole, InspectionRequirementStatus,
-    PPEAnalysis
+    PPEAnalysis, PPEComplianceStatus
 )
 from app.services.compliance.rules import DEFAULT_COMPLIANCE_RULES
 from app.services.compliance.engine import ComplianceAgent
@@ -149,7 +149,11 @@ class ComplianceService:
                         "name": w.name,
                         "role": w.role.value if hasattr(w.role, "value") else str(w.role),
                         "ppe_status": w.ppe_status.value if hasattr(w.ppe_status, "value") else str(w.ppe_status),
-                        "safety_training_status": w.safety_training_status.value if hasattr(w.safety_training_status, "value") else str(w.safety_training_status),
+                        "safety_training_status": (
+                            getattr(w, "safety_training", getattr(w, "safety_training_status", None)).value
+                            if hasattr(getattr(w, "safety_training", getattr(w, "safety_training_status", None)), "value")
+                            else str(getattr(w, "safety_training", getattr(w, "safety_training_status", "certified")))
+                        ),
                     }
                     for w in workers
                 ],
@@ -187,8 +191,8 @@ class ComplianceService:
                 ],
                 "ppe_events": [
                     {
-                        "is_compliant": p.is_compliant,
-                        "person_id": p.person_id,
+                        "is_compliant": (getattr(p, "overall_compliance", None) == PPEComplianceStatus.COMPLIANT) if hasattr(p, "overall_compliance") else getattr(p, "is_compliant", True),
+                        "person_id": getattr(p, "worker_id", None) or getattr(p, "person_id", None) or getattr(p, "analysis_id", "unknown"),
                     }
                     for p in ppe_records
                 ]

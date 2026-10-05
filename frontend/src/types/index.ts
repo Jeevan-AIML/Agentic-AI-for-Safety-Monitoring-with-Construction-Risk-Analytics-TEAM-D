@@ -1151,4 +1151,291 @@ export interface InsuranceDemoScenario {
   focus_areas: string[];
 }
 
+// ── Milestone 4 Phase 4.1 Reporting Agent Types ──────────────────────────
 
+export type ReportType = 'DAILY_SITE' | 'EXECUTIVE_SUMMARY' | 'AUDIT_READY' | 'PROJECT_HEALTH';
+export type ReportStatus = 'GENERATING' | 'COMPLETED' | 'FAILED' | 'ARCHIVED';
+
+export interface ReportTypeInfo {
+  type: ReportType;
+  name: string;
+  description: string;
+  target_audience: string;
+  frequency: string;
+}
+
+export interface GeneratedReportSummary {
+  id: string;
+  report_id: string;
+  site_id?: string;
+  project_id?: string;
+  report_type: ReportType;
+  title: string;
+  reporting_period_start?: string;
+  reporting_period_end?: string;
+  generated_at: string;
+  status: ReportStatus;
+  summary?: string;
+  created_by?: string;
+  metrics?: any;
+}
+
+export interface GeneratedReport extends GeneratedReportSummary {
+  content: any;
+}
+
+// ── Milestone 4 Phase 4.2 Construction Risk Intelligence Engine Types ──────
+
+export interface CategoryRiskBreakdown {
+  site_risk_score: number;
+  safety_risk_score: number;
+  compliance_risk_score: number;
+  insurance_risk_score: number;
+  weights: {
+    site_risk: number;
+    safety_risk: number;
+    compliance_risk: number;
+    insurance_risk: number;
+  };
+  site_risk?: any;
+  safety_risk?: any;
+  compliance_risk?: any;
+  insurance_risk?: any;
+}
+
+export interface RecurringPattern {
+  pattern_id: string;
+  category: string;
+  pattern_type: string;
+  pattern_description: string;
+  occurrence_count: number;
+  first_observed?: string;
+  last_observed?: string;
+  time_window_hours: number;
+  severity: string;
+  velocity: string;
+  locations: string[];
+  sample_finding_ids: string[];
+}
+
+export interface IncidentLeadingIndicator {
+  indicator: string;
+  severity: string;
+  observed_value: string;
+}
+
+export interface PotentialIncidentPrediction {
+  prediction_id: string;
+  incident_type: string;
+  probability_score: number;
+  severity_potential: string;
+  predicted_timeframe: string;
+  primary_driver: string;
+  causal_chain: string[];
+  leading_indicators: IncidentLeadingIndicator[];
+  recommended_interventions: string[];
+}
+
+export interface OperationalRecommendation {
+  recommendation_id: string;
+  category: string;
+  priority: string;
+  timeframe: string;
+  title: string;
+  action_items: string[];
+  expected_risk_reduction: string;
+  target_hazard_types: string[];
+  cost_impact_level: string;
+}
+
+export interface RiskIntelligenceAssessment {
+  id: string;
+  assessment_id: string;
+  project_id?: string;
+  site_id: string;
+  overall_risk_score: number;
+  risk_level: string;
+  category_scores?: CategoryRiskBreakdown;
+  recurring_patterns?: RecurringPattern[];
+  predicted_incidents?: PotentialIncidentPrediction[];
+  recommendations?: OperationalRecommendation[];
+  findings_count: number;
+  critical_findings_count: number;
+  high_findings_count: number;
+  medium_findings_count: number;
+  low_findings_count: number;
+  assessed_at: string;
+  created_at: string;
+}
+
+// ── Phase 4.3: Executive Project Dashboard Types ─────────────────────────
+
+export interface ExecutiveDashboardSiteInfo {
+  site_id: string;
+  site_name: string;
+  site_code?: string;
+  project_id?: string;
+  project_name?: string;
+  status: string;
+  location?: string;
+  manager?: string;
+}
+
+export interface ExecutiveDashboardAssessment {
+  assessment_id: string;
+  generated_at: string;
+  overall_risk_score: number;
+  overall_risk_level: string;
+  scoring_explanation?: string;
+  category_scores?: Record<string, any>;
+  data_quality?: Record<string, any>;
+}
+
+export interface ExecutiveDashboardHealth {
+  health_status: 'HEALTHY' | 'MODERATE_RISK' | 'ELEVATED' | 'CRITICAL_ACTION_REQUIRED' | string;
+  health_score: number;
+  total_active_findings: number;
+  critical_findings_count: number;
+  high_findings_count: number;
+  unresolved_issues_count: number;
+  active_safety_alerts_count: number;
+  compliance_violations_count: number;
+  overdue_inspections_count: number;
+  insurance_exposure_index: number;
+  open_insurance_claims_count: number;
+  active_workers_count: number;
+  active_equipment_count: number;
+}
+
+export interface ExecutiveCriticalFinding {
+  id: string;
+  finding_id: string;
+  source_agent: string;
+  category: string;
+  severity: string;
+  risk_score: number;
+  title: string;
+  description: string;
+  location?: string;
+  status: string;
+  detected_at?: string;
+  evidence?: string;
+  navigation_url: string;
+}
+
+export interface ExecutiveSafetySnapshot {
+  safety_score: number;
+  ppe_compliance_rate: number;
+  active_workers_count: number;
+  active_alerts_count: number;
+  critical_findings_count: number;
+  last_assessment_date?: string;
+  status: string;
+}
+
+export interface ExecutiveComplianceSnapshot {
+  compliance_score: number;
+  compliance_status: string;
+  overdue_inspections_count: number;
+  active_violations_count: number;
+  critical_violations_count: number;
+  last_inspection_date?: string;
+  total_rules_evaluated: number;
+}
+
+export interface ExecutiveInsuranceSnapshot {
+  insurance_risk_score: number;
+  insurance_risk_level: string;
+  exposure_index: number;
+  estimated_liability_exposure: string;
+  unresolved_findings_count: number;
+  active_claims_count: number;
+  underwriting_recommendations: string[];
+  last_assessment_date?: string;
+}
+
+export interface ExecutiveDashboardResponse {
+  site: ExecutiveDashboardSiteInfo;
+  assessment: ExecutiveDashboardAssessment;
+  health: ExecutiveDashboardHealth;
+  pillar_scores: {
+    site_risk?: any;
+    safety_risk?: any;
+    compliance_risk?: any;
+    insurance_risk?: any;
+    site_risk_score?: number;
+    safety_risk_score?: number;
+    compliance_risk_score?: number;
+    insurance_risk_score?: number;
+    weights?: Record<string, number>;
+    [key: string]: any;
+  };
+  critical_findings: ExecutiveCriticalFinding[];
+  recurring_patterns: RecurringPattern[];
+  potential_incidents: PotentialIncidentPrediction[];
+  recommendations: OperationalRecommendation[];
+  safety_summary: ExecutiveSafetySnapshot;
+  compliance_summary: ExecutiveComplianceSnapshot;
+  insurance_summary: ExecutiveInsuranceSnapshot;
+  recent_reports: GeneratedReport[];
+  history: Array<{
+    assessment_id: string;
+    generated_at?: string;
+    overall_risk_score: number;
+    overall_risk_level: string;
+    site_risk: number;
+    safety_risk: number;
+    compliance_risk: number;
+    insurance_risk: number;
+  }>;
+  last_analysis_time: string;
+  data_freshness: string;
+}
+
+// ── Agent Orchestration Types (Phase 4.4) ──────────────────────────────────
+
+export type OrchestrationStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
+export type OrchestrationMode = 'FULL_ANALYSIS' | 'TARGETED_ANALYSIS' | 'REFRESH' | 'REPORT_REFRESH';
+
+export interface AgentExecutionStatus {
+  agent_name: string;
+  status: OrchestrationStatus;
+  duration_ms: number;
+  error?: string | null;
+  message?: string | null;
+  output_summary?: Record<string, any> | null;
+}
+
+export interface OrchestrationRunResponse {
+  id: string;
+  execution_id: string;
+  site_id: string;
+  project_id?: string | null;
+  status: OrchestrationStatus;
+  execution_mode: OrchestrationMode;
+  requested_agents: string[];
+  agent_statuses: Record<string, AgentExecutionStatus>;
+  risk_intelligence_id?: string | null;
+  report_id?: string | null;
+  duration_ms: number;
+  warnings: string[];
+  errors: string[];
+  created_by?: string | null;
+  started_at: string;
+  completed_at?: string | null;
+}
+
+export interface OrchestrationRequest {
+  site_id: string;
+  project_id?: string | null;
+  mode?: OrchestrationMode;
+  agents?: string[];
+  generate_report?: boolean;
+  report_type?: string;
+  is_simulation?: boolean;
+}
+
+export interface OrchestrationHistoryResponse {
+  total: number;
+  items: OrchestrationRunResponse[];
+}

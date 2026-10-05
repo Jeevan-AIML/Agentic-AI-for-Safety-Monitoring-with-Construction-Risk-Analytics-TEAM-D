@@ -4,10 +4,11 @@ import {
   LayoutDashboard, FolderOpen, MapPin, ShieldAlert,
   HardHat, ClipboardCheck, FileText, Bell, Users,
   Settings, ChevronRight, Shield, AlertTriangle,
-  BarChart3, Truck, Activity, X
+  BarChart3, Truck, Activity, X, Briefcase, Video, Cpu
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
+import { APP_FOOTER_TITLE, APP_FOOTER_SUBTITLE } from '@/utils/constants';
 import type { UserRole } from '@/types';
 import clsx from 'clsx';
 
@@ -20,20 +21,32 @@ interface NavItem {
   badge?: number;
 }
 
-const navItems: NavItem[] = [
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const coreNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
+  { label: 'Executive Dashboard', path: '/executive-dashboard', icon: <Briefcase size={18} /> },
   { label: 'Projects', path: '/projects', icon: <FolderOpen size={18} />, roles: ['super_admin', 'project_manager'] },
   { label: 'Sites', path: '/sites', icon: <MapPin size={18} /> },
+];
+
+const intelligenceNavItems: NavItem[] = [
   { label: 'Risk Monitoring', path: '/risk-monitoring', icon: <ShieldAlert size={18} /> },
   { label: 'Safety', path: '/safety', icon: <HardHat size={18} /> },
   { label: 'Compliance', path: '/compliance', icon: <ClipboardCheck size={18} /> },
   { label: 'Insurance', path: '/insurance', icon: <Shield size={18} /> },
-  { label: 'Incidents', path: '/incidents', icon: <AlertTriangle size={18} />, comingSoon: true },
-  { label: 'Inspections', path: '/inspections', icon: <Activity size={18} />, comingSoon: true },
-  { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} />, comingSoon: true },
+  { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} /> },
 ];
 
-const bottomNavItems: NavItem[] = [
+const advancedNavItems: NavItem[] = [
+  { label: 'Video Surveillance', path: '/video-surveillance', icon: <Video size={18} /> },
+];
+
+const systemNavItems: NavItem[] = [
+  { label: 'Agent Orchestrator', path: '/orchestration', icon: <Cpu size={18} /> },
   { label: 'Notifications', path: '/notifications', icon: <Bell size={18} /> },
   { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['super_admin'] },
   { label: 'Settings', path: '/settings', icon: <Settings size={18} />, roles: ['super_admin', 'project_manager'] },
@@ -110,27 +123,57 @@ export default function Sidebar() {
         </div>
 
         {/* Main Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 pt-4 pb-2 space-y-0.5">
-          {navItems.filter(canSee).map((item) => (
-            <NavItem key={item.path} item={item} currentPath={location.pathname} />
-          ))}
-
-          <div className="pt-3 pb-1">
-            <div className="text-[10px] font-medium text-slate-600 uppercase tracking-widest px-3 mb-1">System</div>
+        <nav className="flex-1 overflow-y-auto px-3 pt-3 pb-2 space-y-4">
+          {/* Core */}
+          <div>
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-1.5">Core</div>
+            <div className="space-y-0.5">
+              {coreNavItems.filter(canSee).map((item) => (
+                <NavItem key={item.path} item={item} currentPath={location.pathname} />
+              ))}
+            </div>
           </div>
 
-          {bottomNavItems.filter(canSee).map((item) => (
-            <NavItem key={item.path} item={item} currentPath={location.pathname} />
-          ))}
+          {/* Intelligence */}
+          <div>
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-1.5">Intelligence</div>
+            <div className="space-y-0.5">
+              {intelligenceNavItems.filter(canSee).map((item) => (
+                <NavItem key={item.path} item={item} currentPath={location.pathname} />
+              ))}
+            </div>
+          </div>
+
+          {/* Advanced Intelligence */}
+          {advancedNavItems.filter(canSee).length > 0 && (
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-1.5">Advanced Intelligence</div>
+              <div className="space-y-0.5">
+                {advancedNavItems.filter(canSee).map((item) => (
+                  <NavItem key={item.path} item={item} currentPath={location.pathname} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* System */}
+          <div>
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-1.5">System</div>
+            <div className="space-y-0.5">
+              {systemNavItems.filter(canSee).map((item) => (
+                <NavItem key={item.path} item={item} currentPath={location.pathname} />
+              ))}
+            </div>
+          </div>
         </nav>
 
-        {/* Version */}
-        <div className="px-4 py-3 border-t border-slate-800">
-          <div className="text-[10px] text-slate-500 font-medium">
-            ACRIP v1.0 · Phase 1.3
+        {/* Platform Footer */}
+        <div className="px-4 py-3 border-t border-slate-800 bg-surface-950/40">
+          <div className="text-[10px] text-slate-300 font-medium truncate">
+            {APP_FOOTER_TITLE}
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Site Risk Agent (Rule Engine)
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            {APP_FOOTER_SUBTITLE}
           </div>
         </div>
       </motion.aside>

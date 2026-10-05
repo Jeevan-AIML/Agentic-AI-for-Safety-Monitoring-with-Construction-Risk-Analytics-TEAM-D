@@ -284,6 +284,9 @@ class Project(Base):
     # Relationships
     manager = relationship("User", back_populates="managed_projects", foreign_keys=[manager_id])
     sites = relationship("Site", back_populates="project")
+    reports = relationship("GeneratedReport", back_populates="project", cascade="all, delete-orphan")
+    risk_intelligence_records = relationship("ProjectRiskIntelligence", back_populates="project", cascade="all, delete-orphan")
+    orchestration_runs = relationship("AgentOrchestrationRun", back_populates="project", cascade="all, delete-orphan")
 
 
 class Site(Base):
@@ -333,6 +336,9 @@ class Site(Base):
     insurance_assessments = relationship("InsuranceRiskAssessment", back_populates="site", cascade="all, delete-orphan")
     insurance_claims = relationship("InsuranceClaimAssessment", back_populates="site", cascade="all, delete-orphan")
     claim_packages = relationship("ClaimDocumentationPackage", back_populates="site", cascade="all, delete-orphan")
+    reports = relationship("GeneratedReport", back_populates="site", cascade="all, delete-orphan")
+    risk_intelligence_records = relationship("ProjectRiskIntelligence", back_populates="site", cascade="all, delete-orphan")
+    orchestration_runs = relationship("AgentOrchestrationRun", back_populates="site", cascade="all, delete-orphan")
 
 
 class Worker(Base):
@@ -355,6 +361,10 @@ class Worker(Base):
     site = relationship("Site", back_populates="workers")
     safety_findings = relationship("SafetyFinding", back_populates="worker")
     ppe_analyses = relationship("PPEAnalysis", back_populates="worker")
+
+    @property
+    def safety_training_status(self):
+        return self.safety_training
 
 
 class Equipment(Base):
@@ -572,6 +582,14 @@ class PPEAnalysis(Base):
     site = relationship("Site", back_populates="ppe_analyses")
     worker = relationship("Worker", back_populates="ppe_analyses")
     creator = relationship("User")
+
+    @property
+    def is_compliant(self) -> bool:
+        return self.overall_compliance == PPEComplianceStatus.COMPLIANT
+
+    @property
+    def person_id(self) -> Optional[str]:
+        return self.worker_id or self.analysis_id
 
 
 class SafetyMonitoringEvent(Base):
@@ -987,6 +1005,159 @@ class ClaimDocumentationPackage(Base):
     # Relationships
     site = relationship("Site", back_populates="claim_packages")
     claim_assessment = relationship("InsuranceClaimAssessment", back_populates="package")
+
+
+# ── Milestone 4 Phase 4.1 Reporting Agent Models ──────────────────────────
+
+class ReportType(str, enum.Enum):
+    DAILY_SITE = "DAILY_SITE"
+    EXECUTIVE_SUMMARY = "EXECUTIVE_SUMMARY"
+    AUDIT_READY = "AUDIT_READY"
+    PROJECT_HEALTH = "PROJECT_HEALTH"
+
+
+class ReportStatus(str, enum.Enum):
+    GENERATING = "GENERATING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    ARCHIVED = "ARCHIVED"
+
+
+class GeneratedReport(Base):
+    __tablename__ = "generated_reports"
+
+    id = Column(String(36), primary_key=True)
+    report_id = Column(String(50), unique=True, nullable=False, index=True)
+    site_id = Column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    report_type = Column(SAEnum(ReportType), nullable=False, default=ReportType.DAILY_SITE)
+    title = Column(String(255), nullable=False)
+    reporting_period_start = Column(DateTime, nullable=True)
+    reporting_period_end = Column(DateTime, nullable=True)
+    generated_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(SAEnum(ReportStatus), default=ReportStatus.COMPLETED)
+    summary = Column(Text, nullable=True)
+    content = Column(JSON, nullable=False)
+    metrics = Column(JSON, nullable=True)
+    created_by = Column(String(100), default="ReportingAgent")
+
+    # Relationships
+    site = relationship("Site", back_populates="reports")
+    project = relationship("Project", back_populates="reports")
+
+
+# ── Milestone 4 Phase 4.2 Construction Risk Intelligence Engine ────────────
+
+class ProjectRiskIntelligence(Base):
+    __tablename__ = "project_risk_intelligence"
+
+    id = Column(String(36), primary_key=True)
+    intelligence_id = Column(String(50), unique=True, nullable=False, index=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    site_id = Column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=True)
+    overall_risk_score = Column(Float, nullable=False, default=0.0)
+    overall_risk_level = Column(SAEnum(RiskCategory), nullable=False, default=RiskCategory.LOW)
+    scoring_explanation = Column(Text, nullable=True)
+    category_scores = Column(JSON, nullable=True)
+    data_quality = Column(JSON, nullable=True)
+    critical_findings = Column(JSON, nullable=True)
+    recurring_patterns = Column(JSON, nullable=True)
+    potential_incidents = Column(JSON, nullable=True)
+    recommendations = Column(JSON, nullable=True)
+    supporting_metrics = Column(JSON, nullable=True)
+    time_window_days = Column(Integer, default=30)
+    is_simulation = Column(Boolean, default=False)
+    created_by = Column(String(100), default="ConstructionRiskIntelligenceEngine")
+    generated_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    site = relationship("Site", back_populates="risk_intelligence_records")
+    project = relationship("Project", back_populates="risk_intelligence_records")
+
+    # Compatibility properties for Pydantic serialization
+    @property
+    def assessment_id(self) -> str:
+        return self.intelligence_id
+
+    @property
+    def risk_level(self) -> str:
+        return self.overall_risk_level.value.upper() if hasattr(self.overall_risk_level, "value") else str(self.overall_risk_level).upper()
+
+    @property
+    def predicted_incidents(self) -> Any:
+        return self.potential_incidents
+
+    @property
+    def assessed_at(self) -> datetime:
+        return self.generated_at
+
+    @property
+    def created_at(self) -> datetime:
+        return self.generated_at
+
+    @property
+    def findings_count(self) -> int:
+        return (self.supporting_metrics or {}).get("total_findings_analyzed", len(self.critical_findings or []))
+
+    @property
+    def critical_findings_count(self) -> int:
+        return (self.supporting_metrics or {}).get("critical_findings_count", len(self.critical_findings or []))
+
+    @property
+    def high_findings_count(self) -> int:
+        return (self.supporting_metrics or {}).get("high_findings_count", 0)
+
+    @property
+    def medium_findings_count(self) -> int:
+        return (self.supporting_metrics or {}).get("medium_findings_count", 0)
+
+    @property
+    def low_findings_count(self) -> int:
+        return (self.supporting_metrics or {}).get("low_findings_count", 0)
+
+
+# ── Milestone 4 Phase 4.4 Agent Orchestration ─────────────────────────────
+
+class OrchestrationStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    PARTIAL = "PARTIAL"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
+class OrchestrationMode(str, enum.Enum):
+    FULL_ANALYSIS = "FULL_ANALYSIS"
+    TARGETED_ANALYSIS = "TARGETED_ANALYSIS"
+    REFRESH = "REFRESH"
+    REPORT_REFRESH = "REPORT_REFRESH"
+
+
+class AgentOrchestrationRun(Base):
+    __tablename__ = "agent_orchestration_runs"
+
+    id = Column(String(36), primary_key=True)
+    execution_id = Column(String(50), unique=True, nullable=False, index=True)
+    site_id = Column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    status = Column(SAEnum(OrchestrationStatus), nullable=False, default=OrchestrationStatus.PENDING)
+    execution_mode = Column(SAEnum(OrchestrationMode), nullable=False, default=OrchestrationMode.FULL_ANALYSIS)
+    requested_agents = Column(JSON, nullable=False)
+    agent_statuses = Column(JSON, nullable=False)
+    risk_intelligence_id = Column(String(50), nullable=True)
+    report_id = Column(String(50), nullable=True)
+    duration_ms = Column(Float, default=0.0)
+    warnings = Column(JSON, default=list)
+    errors = Column(JSON, default=list)
+    created_by = Column(String(100), default="AgentOrchestrator")
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    site = relationship("Site", back_populates="orchestration_runs")
+    project = relationship("Project", back_populates="orchestration_runs")
+
 
 
 

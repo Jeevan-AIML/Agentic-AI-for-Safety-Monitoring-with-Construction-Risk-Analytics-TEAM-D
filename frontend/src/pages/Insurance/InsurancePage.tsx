@@ -16,8 +16,8 @@ import type {
   ClaimDocumentationPackage, InsuranceDemoScenario, InsuranceRiskLevel
 } from '@/types';
 
-const OPERATIONAL_ROLES = ['super_admin', 'safety_officer', 'site_manager'];
-const DEMO_ROLES = ['super_admin', 'safety_officer', 'site_manager', 'project_manager'];
+const OPERATIONAL_ROLES = ['super_admin', 'safety_officer', 'site_manager', 'viewer'];
+const DEMO_ROLES = ['super_admin', 'safety_officer', 'site_manager', 'project_manager', 'viewer'];
 
 const EXPOSURE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   NEGLIGIBLE: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -147,7 +147,7 @@ export default function InsurancePage() {
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-slate-100 tracking-tight">Insurance Intelligence</h1>
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                Milestone 3 Core
+                Underwriting & Claims
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
